@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leaf Lab: read a leaf like an algorithm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;1,9..144,500&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#08150f;--p:#0f261b;--p2:#143324;--line:#21493a;--ink:#e9f3ea;--mut:#8fb09b;--lime:#c4f04a;--band:#c4f04a;--serif:Fraunces,Georgia,serif;--mono:"IBM Plex Mono",ui-monospace,monospace}
+*{box-sizing:border-box}
+body{margin:0;color:var(--ink);font:16px/1.6 system-ui,sans-serif;background:radial-gradient(900px 500px at 85% -5%,#1d4a2f 0,transparent 60%),radial-gradient(700px 500px at -10% 40%,#12301f 0,transparent 60%),var(--bg)}
+main{max-width:1080px;margin:0 auto;padding:28px 22px 80px}
+.brand{font:600 1.15rem var(--serif);display:flex;gap:8px;align-items:center}.brand i{width:10px;height:10px;border-radius:50%;background:var(--lime);box-shadow:0 0 14px var(--lime)}
+.hero{display:grid;grid-template-columns:1.15fr 1fr;gap:30px;align-items:center;padding:34px 0 26px}
+h1{font:600 clamp(2.4rem,6vw,4.3rem)/1.02 var(--serif);margin:0 0 18px;letter-spacing:-.02em}h1 em{color:var(--lime);font-style:italic;font-weight:500}
+.hero p{color:var(--mut);max-width:34em;margin:0 0 26px;font-size:1.05rem}
+.btns{display:flex;flex-wrap:wrap;gap:12px}
+.btn{font:600 1rem system-ui;border-radius:99px;padding:13px 24px;border:1.5px solid var(--lime);cursor:pointer;color:var(--lime);background:none;transition:.2s}
+.btn.main{background:var(--lime);color:#0b1a0d}.btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px #c4f04a33}
+.leafart{width:100%;max-width:380px;justify-self:center;filter:drop-shadow(0 0 28px #c4f04a40)}
+.leafart path{fill:none;stroke:var(--lime);stroke-width:2.2;stroke-linecap:round;stroke-dasharray:700;stroke-dashoffset:700;animation:draw 2.4s .2s ease forwards}
+.leafart .v{stroke-width:1.4;opacity:.7;animation-delay:.9s}
+@keyframes draw{to{stroke-dashoffset:0}}
+.stage{margin-top:14px}
+.stage[hidden]{display:none}
+.grid{display:grid;grid-template-columns:1.25fr 1fr;gap:24px;align-items:start}
+.viewer{position:relative;border-radius:20px;overflow:hidden;border:1px solid var(--line);background:#000;touch-action:none}
+.viewer canvas{display:block;width:100%;height:auto}
+#c3{position:absolute;inset:0;clip-path:inset(0 0 0 var(--x,50%))}
+.tag{position:absolute;top:12px;font:500 .72rem var(--mono);background:#06120bcc;border:1px solid var(--line);padding:3px 10px;border-radius:99px;z-index:2}
+.tag.l{left:12px}.tag.r{right:12px;color:#ff8a7a}
+.handle{position:absolute;top:0;bottom:0;left:var(--x,50%);width:2px;background:var(--lime);z-index:2;pointer-events:none;box-shadow:0 0 12px var(--lime)}
+.handle::after{content:"↔";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:var(--lime);color:#0b1a0d;display:grid;place-items:center;font-weight:700}
+#cmp{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:ew-resize;z-index:3;margin:0}
+.scan{position:absolute;left:0;right:0;top:0;height:3px;background:var(--lime);box-shadow:0 0 22px 6px #c4f04a80;z-index:4;display:none}
+.scanning .scan{display:block;animation:scan 1.25s ease-in-out}
+@keyframes scan{from{top:0}to{top:100%}}
+.scanning .viewer::after{content:"Scanning…";position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font:500 .8rem var(--mono);color:var(--lime);z-index:4}
+.reveal{opacity:0;transform:translateY(14px);transition:opacity .6s,transform .6s}.done .reveal{opacity:1;transform:none}
+.card{background:linear-gradient(160deg,var(--p2),var(--p));border:1px solid var(--line);border-radius:20px;padding:22px}
+.gauge{display:flex;align-items:center;gap:20px}
+.ringwrap{position:relative;width:132px;height:132px;flex:none}.ringwrap svg{transform:rotate(-90deg)}
+.ringwrap circle{fill:none;stroke-width:11}.track{stroke:#ffffff14}
+#ring{stroke:var(--band);stroke-linecap:round;transition:stroke-dashoffset 1.3s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 0 6px var(--band))}
+.ringwrap b{position:absolute;inset:0;display:grid;place-items:center;font:600 1.7rem var(--serif)}
+#band{font:600 1.7rem/1.1 var(--serif);color:var(--band);margin:0 0 4px}
+.sub{color:var(--mut);font-size:.92rem;margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 12px}
+.chip{font:500 .78rem var(--mono);border:1px solid var(--line);border-radius:99px;padding:4px 12px;color:var(--mut)}.chip b{color:var(--ink)}
+.hint{margin:0;font-size:.98rem}
+.note{font-size:.82rem;color:var(--mut);margin-top:14px}
+h2{font:600 1.7rem/1.2 var(--serif);margin:54px 0 6px}
+.lede{color:var(--mut);margin:0 0 20px;max-width:40em}
+ol.steps{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:44px 1fr auto;gap:6px 16px;align-items:center;background:var(--p);border:1px solid var(--line);border-radius:16px;padding:16px 18px;opacity:0;transform:translateX(-14px)}
+.done .steps li{animation:in .5s var(--d) forwards}@keyframes in{to{opacity:1;transform:none}}
+.steps li::before{content:counter(s);width:36px;height:36px;border-radius:50%;background:var(--lime);color:#0b1a0d;display:grid;place-items:center;font:600 1rem var(--serif);grid-row:span 2}
+.steps strong{font-size:1.02rem}.steps .why{grid-column:2/3;color:var(--mut);font-size:.9rem}
+.steps .cx{font:500 .78rem var(--mono);color:var(--lime);border:1px solid var(--lime);border-radius:8px;padding:2px 9px;white-space:nowrap;justify-self:end}
+.steps .ms{grid-column:3;font:500 .78rem var(--mono);color:var(--mut);justify-self:end;text-align:right}
+.steps .algo{font:500 .78rem var(--mono);color:var(--mut);margin-left:8px}
+.msbar{grid-column:2/4;height:4px;border-radius:4px;background:#ffffff10;overflow:hidden}.msbar i{display:block;height:100%;background:var(--lime);border-radius:4px}
+.bar{display:grid;grid-template-columns:110px 1fr 88px;gap:12px;align-items:center;margin:8px 0;font:500 .8rem var(--mono);color:var(--mut)}
+.bar i{display:block;height:14px;border-radius:7px;background:var(--lime);min-width:3px;transition:width .8s}.bar.alt i{background:#7ad7ff}.bar b{color:var(--ink);text-align:right}
+.bm h3{font:600 1rem system-ui;margin:22px 0 4px}
+@media(max-width:820px){.hero,.grid{grid-template-columns:1fr}.leafart{max-width:240px;order:-1}.gauge{flex-direction:column;align-items:flex-start}.steps li{grid-template-columns:40px 1fr}.steps .cx,.steps .ms{grid-column:2;justify-self:start;text-align:left}.msbar{grid-column:1/3}.bar{grid-template-columns:90px 1fr 76px}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style></head><body><main>
+<div class="brand"><i></i>Leaf Lab</div>
+<section class="hero">
+ <div>
+  <h1>Read a leaf like an <em>algorithm.</em></h1>
+  <p>Drop in a leaf photo. Leaf Lab finds the leaf, maps the damage and shows every algorithm it used, with its complexity and its real running time.</p>
+  <div class="btns">
+   <label class="btn main" for="f">Upload a leaf photo</label>
+   <button class="btn" id="demo" type="button">Try a sample leaf</button>
+  </div>
+  <input id="f" type="file" accept="image/*" capture="environment" hidden>
+ </div>
+ <svg class="leafart" viewBox="0 0 300 340" aria-hidden="true">
+  <path d="M150 12C250 55 280 190 150 328C20 190 50 55 150 12Z"/><path d="M150 12V328"/>
+  <path class="v" d="M150 80Q205 70 245 48M150 80Q95 70 55 48M150 130Q215 125 262 100M150 130Q85 125 38 100M150 185Q210 185 258 160M150 185Q90 185 42 160M150 240Q195 242 232 222M150 240Q105 242 68 222"/>
+ </svg>
+</section>
+
+<section class="stage" id="stage" hidden>
+ <div class="grid">
+  <div class="viewer" id="viewer">
+   <canvas id="c1"></canvas><canvas id="c3"></canvas>
+   <span class="tag l">Original</span><span class="tag r">Damage map</span>
+   <div class="handle"></div><div class="scan"></div>
+   <input id="cmp" type="range" min="2" max="98" value="50" aria-label="Compare original and damage map">
+  </div>
+  <div class="card reveal">
+   <div class="gauge">
+    <div class="ringwrap"><svg width="132" height="132" viewBox="0 0 132 132"><circle class="track" cx="66" cy="66" r="55"/><circle id="ring" cx="66" cy="66" r="55"/></svg><b><span id="pct">0</span>%</b></div>
+    <div><p id="band"></p><p class="sub">of the leaf is damaged</p></div>
+   </div>
+   <div class="chips" id="chips"></div>
+   <p class="hint" id="hint"></p>
+   <p class="note">A screening aid based on colour and shape, not a diagnosis. Confirm with your local agriculture office before treating anything.</p>
+  </div>
+ </div>
+ <h2 class="reveal">The pipeline</h2>
+ <p class="lede reveal">Seven algorithms run in order. Each card shows what it does, its time complexity and how long it took on your photo.</p>
+ <ol class="steps" id="steps"></ol>
+ <div class="bm reveal">
+  <h2>Does it scale as predicted?</h2>
+  <p class="lede">The pipeline is O(n), so time per pixel should stay flat as the image grows. A heap should also beat full sorting when you only need the top 3.</p>
+  <button class="btn" id="bm" type="button">Run benchmark</button><div id="bmout"></div>
+ </div>
+</section>
+</main>
+<script>
+
+// ---- Algorithms ----
+function otsu(a){const h=new Array(256).fill(0);for(const v of a)h[v]++;const N=a.length;let sum=0;for(let i=0;i<256;i++)sum+=i*h[i];let wB=0,sB=0,best=0,t=0;for(let i=0;i<256;i++){wB+=h[i];if(!wB)continue;const wF=N-wB;if(!wF)break;sB+=i*h[i];const mB=sB/wB,mF=(sum-sB)/wF,v=wB*wF*(mB-mF)**2;if(v>best){best=v;t=i}}return t}
+function components(mask,W,H,val){const n=W*H,lab=new Int32Array(n),q=new Int32Array(n),sizes=[0];let c=0;
+ for(let s=0;s<n;s++){if(mask[s]!==val||lab[s])continue;c++;let h=0,t=0;q[t++]=s;lab[s]=c;
+  while(h<t){const p=q[h++],x=p%W;
+   if(x>0&&mask[p-1]===val&&!lab[p-1]){lab[p-1]=c;q[t++]=p-1}
+   if(x<W-1&&mask[p+1]===val&&!lab[p+1]){lab[p+1]=c;q[t++]=p+1}
+   if(p>=W&&mask[p-W]===val&&!lab[p-W]){lab[p-W]=c;q[t++]=p-W}
+   if(p<n-W&&mask[p+W]===val&&!lab[p+W]){lab[p+W]=c;q[t++]=p+W}}
+  sizes[c]=t}
+ return {lab,sizes,count:c}}
+function topK(a,k){const h=[];for(const v of a){if(h.length<k){h.push(v);let i=h.length-1;while(i&&h[(i-1)>>1]>h[i]){const p=(i-1)>>1;[h[i],h[p]]=[h[p],h[i]];i=p}}
+ else if(v>h[0]){h[0]=v;let i=0;for(;;){const l=2*i+1,r=l+1;let s=i;if(l<k&&h[l]<h[s])s=l;if(r<k&&h[r]<h[s])s=r;if(s===i)break;[h[i],h[s]]=[h[s],h[i]];i=s}}}
+ return h.sort((x,y)=>y-x)}
+const HINTS={clean:"Very little discolouration found. The leaf looks healthy.",
+ many:"Many small spots spread across the leaf. This pattern is common in fungal leaf-spot diseases such as early blight.",
+ patch:"One or two large damaged areas. This pattern is common in blights, leaf scorch or physical damage.",
+ few:"A few separate spots. Watch this plant and check the leaves around it."};
+function analyse(id,W,H){
+ const n=W*H,d=id.data,T=[];
+ const tm=(a,b,c,f)=>{const t=performance.now(),r=f();T.push([a,b,c,performance.now()-t]);return r};
+ const sat=new Uint8Array(n);
+ tm("Saturation map","Linear scan","O(n)",()=>{for(let i=0;i<n;i++){const r=d[4*i],g=d[4*i+1],b=d[4*i+2],mx=Math.max(r,g,b);sat[i]=mx?255*(mx-Math.min(r,g,b))/mx:0}});
+ const th=tm("Otsu threshold","Histogram, scan 256 bins","O(n)",()=>otsu(sat));
+ const fg=sat.map(v=>v>th?1:0);
+ const C=tm("Find the leaf","BFS connected components","O(n)",()=>components(fg,W,H,1));
+ if(!C.count)return null;
+ let L=1;for(let i=1;i<=C.count;i++)if(C.sizes[i]>C.sizes[L])L=i;
+ const leaf=new Uint8Array(n);for(let i=0;i<n;i++)leaf[i]=C.lab[i]===L?1:0;
+ tm("Fill holes in leaf","BFS from the border","O(n)",()=>{const B=components(leaf,W,H,0),e=new Set();
+  for(let x=0;x<W;x++){e.add(B.lab[x]);e.add(B.lab[n-1-x])}for(let y=0;y<H;y++){e.add(B.lab[y*W]);e.add(B.lab[y*W+W-1])}
+  for(let i=0;i<n;i++)if(!leaf[i]&&!e.has(B.lab[i]))leaf[i]=1});
+ const idx=[];for(let i=0;i<n;i++)if(leaf[i])idx.push(i);const m=idx.length;
+ if(m<50)return null;
+ const exg=i=>2*d[4*i+1]-d[4*i]-d[4*i+2];
+ const sorted=tm("Sort pixels by greenness","Timsort","O(m log m)",()=>idx.slice().sort((a,b)=>exg(a)-exg(b)));
+ const cen=[0,.5,1].map(q=>{const i=sorted[Math.floor(q*(m-1))];return [d[4*i],d[4*i+1],d[4*i+2]]});
+ const asg=new Uint8Array(n);
+ tm("Group pixels by colour","K-means, k=3 (machine learning)","O(m·k·t)",()=>{for(let it=0;it<12;it++){const s=[[0,0,0,0],[0,0,0,0],[0,0,0,0]];let ch=0;
+  for(const i of idx){let b=0,bd=1e9;for(let c=0;c<3;c++){const dr=d[4*i]-cen[c][0],dg=d[4*i+1]-cen[c][1],db=d[4*i+2]-cen[c][2],e=dr*dr+dg*dg+db*db;if(e<bd){bd=e;b=c}}
+   if(asg[i]!==b){asg[i]=b;ch++}s[b][0]+=d[4*i];s[b][1]+=d[4*i+1];s[b][2]+=d[4*i+2];s[b][3]++}
+  for(let c=0;c<3;c++)if(s[c][3])cen[c]=[s[c][0]/s[c][3],s[c][1]/s[c][3],s[c][2]/s[c][3]];if(!ch)break}});
+ const bad=cen.map(c=>c[1]<=c[0]*1.1||Math.max(...c)<60); // brown, yellow or very dark groups
+ const les=new Uint8Array(n);for(const i of idx)if(bad[asg[i]])les[i]=1;
+ const S=tm("Find damaged spots","BFS connected components","O(n)",()=>components(les,W,H,1));
+ const minS=Math.max(6,Math.round(m*0.0008));
+ const sizes=S.sizes.slice(1).filter(s=>s>=minS);
+ const keep=new Uint8Array(n);for(let i=0;i<n;i++)if(les[i]&&S.sizes[S.lab[i]]>=minS)keep[i]=1;
+ const top=tm("Largest 3 spots","Min-heap of size k","O(s log k)",()=>topK(sizes,3));
+ const lp=sizes.reduce((a,b)=>a+b,0),sev=100*lp/m;
+ const key=sev<2?"clean":(sizes.length>=12&&top[0]<lp*0.4)?"many":top[0]>=lp*0.5?"patch":"few";
+ return {T,leaf,keep,sev,spots:sizes.length,top,m,n,key,total:T.reduce((a,r)=>a+r[3],0)};
+}
+//--DOM
+const $=id=>document.getElementById(id);let IM=null,tm1=null;
+const WHY={"Saturation map":"Measures how colourful each pixel is, so the leaf stands out from a plain background.","Otsu threshold":"Finds the best cut-off between background and leaf automatically.","Find the leaf":"Flood-fills pixel by pixel. The biggest connected blob is the leaf.","Fill holes in leaf":"Flood-fills from the border so dark patches inside the leaf are not lost.","Sort pixels by greenness":"Ranks every leaf pixel from least to most green, to seed the clustering.","Group pixels by colour":"K-means learns three colour groups. Brown or yellow groups mean damage.","Find damaged spots":"Flood-fills again to count each separate damaged spot.","Largest 3 spots":"A min-heap of size 3 keeps the biggest spots without sorting them all."};
+function grab(side){const k=Math.min(1,side/Math.max(IM.width,IM.height)),W=Math.max(8,Math.round(IM.width*k)),H=Math.max(8,Math.round(IM.height*k)),c=document.createElement("canvas");c.width=W;c.height=H;const x=c.getContext("2d");x.drawImage(IM,0,0,W,H);return {id:x.getImageData(0,0,W,H),W,H}}
+function paint(cv,W,H,fn){cv.width=W;cv.height=H;const x=cv.getContext("2d"),o=x.createImageData(W,H);for(let i=0;i<W*H;i++){const p=fn(i);o.data[4*i]=p[0];o.data[4*i+1]=p[1];o.data[4*i+2]=p[2];o.data[4*i+3]=255}x.putImageData(o,0,0)}
+function sampleLeaf(){const c=document.createElement("canvas");c.width=c.height=480;const x=c.getContext("2d");
+ x.fillStyle="#efede4";x.fillRect(0,0,480,480);
+ const g=x.createLinearGradient(80,50,400,440);g.addColorStop(0,"#4fae4a");g.addColorStop(1,"#2f7d3b");
+ x.beginPath();x.moveTo(240,50);x.bezierCurveTo(400,110,420,320,240,440);x.bezierCurveTo(60,320,80,110,240,50);x.fillStyle=g;x.fill();
+ x.strokeStyle="#1f5f2c";x.lineWidth=3;x.beginPath();x.moveTo(240,50);x.lineTo(240,440);x.stroke();
+ x.lineWidth=1.6;for(let y=110;y<420;y+=45){x.beginPath();x.moveTo(240,y+25);x.quadraticCurveTo(300,y+5,350,y-15);x.moveTo(240,y+25);x.quadraticCurveTo(180,y+5,130,y-15);x.stroke()}
+ for(const [px,py,r] of [[190,170,16],[290,210,20],[215,290,13],[300,320,11],[170,250,9],[255,130,8],[230,370,9],[300,160,7]]){
+  const h=x.createRadialGradient(px,py,r*.4,px,py,r*1.9);h.addColorStop(0,"rgba(214,190,60,.95)");h.addColorStop(1,"rgba(214,190,60,0)");
+  x.fillStyle=h;x.beginPath();x.arc(px,py,r*1.9,0,7);x.fill();x.fillStyle="#6b3a1c";x.beginPath();x.arc(px,py,r,0,7);x.fill()}
+ return c}
+function gauge(v){const C=2*Math.PI*55,ring=$("ring");ring.style.strokeDasharray=C;ring.style.strokeDashoffset=C;
+ requestAnimationFrame(()=>requestAnimationFrame(()=>ring.style.strokeDashoffset=C*(1-Math.min(v,100)/100)));
+ let t0=null;const f=ts=>{if(t0===null)t0=ts;const k=Math.min(1,(ts-t0)/1300);$("pct").textContent=(v*k).toFixed(1);if(k<1)requestAnimationFrame(f)};requestAnimationFrame(f)}
+function run(){
+ const g=grab(256),r=analyse(g.id,g.W,g.H),d=g.id.data,S=$("stage");
+ const big=grab(720),c1=$("c1");c1.width=big.W;c1.height=big.H;c1.getContext("2d").putImageData(big.id,0,0);
+ S.hidden=false;S.classList.remove("done");S.classList.add("scanning");$("cmp").value=50;S.style.setProperty("--x","50%");
+ clearTimeout(tm1);
+ if(!r){paint($("c3"),g.W,g.H,i=>[0,0,0]);$("band").textContent="No leaf found";$("hint").textContent="Use a plain background and fill the frame with one leaf.";$("chips").innerHTML="";$("steps").innerHTML="";
+  tm1=setTimeout(()=>{S.classList.replace("scanning","done")},1300);S.scrollIntoView({behavior:"smooth"});return}
+ paint($("c3"),g.W,g.H,i=>r.keep[i]?[255,72,60]:r.leaf[i]?[d[4*i]*.55,d[4*i+1]*.55,d[4*i+2]*.55]:[d[4*i]*.2,d[4*i+1]*.2,d[4*i+2]*.2]);
+ const bands=[["Clean","#c4f04a"],["Mild","#f0d94a"],["Moderate","#ff9f43"],["Severe","#ff6b5b"]],bi=r.sev<2?0:r.sev<10?1:r.sev<30?2:3;
+ S.style.setProperty("--band",bands[bi][1]);$("band").textContent=bands[bi][0];
+ $("chips").innerHTML="<span class='chip'><b>"+r.spots+"</b> spots</span><span class='chip'>largest <b>"+(r.top[0]||0)+"</b> px</span><span class='chip'>leaf <b>"+r.m+"</b> px</span><span class='chip'>total <b>"+r.total.toFixed(0)+"</b> ms</span>";
+ $("hint").textContent=HINTS[r.key];
+ const mx=Math.max(...r.T.map(t=>t[3]),.01);
+ $("steps").innerHTML=r.T.filter(t=>WHY[t[0]]).map((t,i)=>"<li style='--d:"+(0.25+i*0.16)+"s'><div><strong>"+t[0]+"</strong><span class='algo'>"+t[1]+"</span></div><span class='cx'>"+t[2]+"</span><span class='why'>"+WHY[t[0]]+"</span><span class='ms'>"+t[3].toFixed(1)+" ms</span><div class='msbar'><i style='width:"+Math.max(2,100*t[3]/mx)+"%'></i></div></li>").join("");
+ tm1=setTimeout(()=>{S.classList.replace("scanning","done");gauge(r.sev)},1300);
+ S.scrollIntoView({behavior:"smooth"});
+}
+$("f").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{IM=im;run()};im.src=URL.createObjectURL(f)};
+$("demo").onclick=()=>{IM=sampleLeaf();run()};
+$("cmp").oninput=e=>$("stage").style.setProperty("--x",e.target.value+"%");
+const bars=(rows,unit,alt)=>{const mx=Math.max(...rows.map(r=>r[1]),.01);return rows.map(r=>"<div class='bar"+(alt&&r[2]?" alt":"")+"'><span>"+r[0]+"</span><i style='width:"+Math.max(2,100*r[1]/mx)+"%'></i><b>"+r[1].toFixed(unit==="ms"?1:2)+" "+unit+"</b></div>").join("")};
+$("bm").onclick=()=>{const b=$("bm");if(!IM)return;b.disabled=true;b.textContent="Running…";
+ setTimeout(()=>{const a=[];for(const s of [64,128,256,512]){const g=grab(s),t=performance.now();analyse(g.id,g.W,g.H);const ms=performance.now()-t;a.push([s+" px side",1000*ms/(g.W*g.H)])}
+  let h="<h3>Pipeline: microseconds per pixel (flat means linear)</h3>"+bars(a,"µs");
+  for(const N of [1e4,1e5,1e6]){const arr=Float64Array.from({length:N},Math.random);let t=performance.now();Float64Array.from(arr).sort().slice(-3);const s=performance.now()-t;t=performance.now();topK(arr,3);const hp=performance.now()-t;
+   h+="<h3>Top 3 of "+N.toLocaleString()+" numbers</h3>"+bars([["Sort all",s],["Heap, k=3",hp,1]],"ms",1)}
+  $("bmout").innerHTML=h;b.disabled=false;b.textContent="Run again"},40)};
+</script></body></html>
